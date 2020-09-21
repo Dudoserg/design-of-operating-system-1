@@ -1,0 +1,7 @@
+.idea/
+.vscode/
+node_modules/
+dist/
+npm-debug.log
+package-lock.json
+vue-2-webpack-4-boilerplate-master.zip
