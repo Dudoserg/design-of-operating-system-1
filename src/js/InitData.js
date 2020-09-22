@@ -8,7 +8,14 @@ import {randomNormal} from "@/js/RandomGauss";
 import * as _ from 'lodash';
 
 
-let A_setting = {proc: 0.80, perf: 0.20, countPartMin: 5, countPartMax: 10, sizeMin: 10, sizeMax: 50}
+let A_setting = {
+    proc: 0.80, // процент процессорного времени
+    perf: 0.20, // процент периферийного времени
+    countPartMin: 5,    // минимальное количество частей( процессор, или периферия) из которой состоит задача
+    countPartMax: 10,   // максимальное количество частей( процессор, или периферия) из которой состоит задача
+    sizeMin: 10,    // минимальный размер части в условных единицах
+    sizeMax: 50     // максимальный размер части в условных единицах
+}
 let B_setting = {proc: 0.60, perf: 0.40, countPartMin: 7, countPartMax: 16, sizeMin: 10, sizeMax: 30}
 let C_setting = {proc: 0.40, perf: 0.60, countPartMin: 15, countPartMax: 25, sizeMin: 10, sizeMax: 20}
 
@@ -16,32 +23,32 @@ let C_setting = {proc: 0.40, perf: 0.60, countPartMin: 15, countPartMax: 25, siz
  *
  * @param canal {Canal}
  */
-function initCanal(canal) {
+function initCanal(canal, isConcatSamePart = false) {
     if (canal.type === "A") {
 
         for (let i = 0; i < 20; i++) {
             let task = new Task();
-            task.parts = createRandomOrderArr(generateTask(A_setting));
+            task.parts = generateTask(A_setting, isConcatSamePart);
             canal.tasks.push(task);
         }
 
     } else if (canal.type === "B") {
         for (let i = 0; i < 20; i++) {
             let task = new Task();
-            task.parts = createRandomOrderArr(generateTask(B_setting));
+            task.parts = generateTask(B_setting, isConcatSamePart);
             canal.tasks.push(task);
         }
     } else if (canal.type === "C") {
         for (let i = 0; i < 20; i++) {
             let task = new Task();
-            task.parts = createRandomOrderArr(generateTask(C_setting));
+            task.parts = generateTask(C_setting, isConcatSamePart);
             canal.tasks.push(task);
         }
     }
 }
 
 
-function generateTask(settings) {
+function generateTask(settings, isConcatSamePart) {
     // Количество частей, полный рандом
     let countPart = randomInteger(settings.countPartMin, settings.countPartMax);
 
@@ -51,9 +58,10 @@ function generateTask(settings) {
     for (let i = 0; i < countPart * settings.proc; i++) {
         let x = 0;
         do {
+            // размер задачи - случайное число по закону нормального распределения
             x = Math.round(randomNormal(settings.sizeMin, settings.sizeMax, 0, 4, 5));
         } while (x <= settings.sizeMin || x >= settings.sizeMax)
-        proc_sizeAll += x;
+        proc_sizeAll += x; // считаем общее время прцоессора
         task_proc.push(new Part("proc", x));
     }
     // генерируем задачи для периферии
@@ -64,17 +72,20 @@ function generateTask(settings) {
         do {
             x = Math.round(randomNormal(settings.sizeMin, settings.sizeMax, 0, 4, 5));
         } while (x <= settings.sizeMin || x >= settings.sizeMax)
-        perf_sizeAll += x;
+        perf_sizeAll += x;  // общее время периферии
         task_perf.push(new Part("perf", x));
     }
+    // Отношение между временем проца и перф которое задано в настройках
     let needRelation = settings.proc / settings.perf;
+    // которое получили
     let currentRelation = proc_sizeAll / perf_sizeAll;
 
-    // Если проца сильно меньше
+    // Если проца  меньше
     if (needRelation > currentRelation) {
         let indexProcPlus = 0;
+        // то пока отношение не будет удовлетворять настройкам
         while (needRelation > currentRelation) {
-            // добавляем размеры частей проца
+            // добавляем размеры к частям процессора, чтобы добиться нужного соотношения
             task_proc[indexProcPlus++].size++;
             if (indexProcPlus >= task_proc.length)
                 indexProcPlus = 0;
@@ -102,10 +113,21 @@ function generateTask(settings) {
     // task_perf.forEach(value => {
     //     perf_sizeAll += value.size;
     // })
-    let proc_generated_percent = proc_sizeAll / (proc_sizeAll + perf_sizeAll);
-    let perf_generated_percent = perf_sizeAll / (proc_sizeAll + perf_sizeAll);
+    // let proc_generated_percent = proc_sizeAll / (proc_sizeAll + perf_sizeAll);
+    // let perf_generated_percent = perf_sizeAll / (proc_sizeAll + perf_sizeAll);
 
-    return task_proc.concat(task_perf);
+    let result = createRandomOrderArr(task_proc.concat(task_perf));
+    if( isConcatSamePart ){
+        for(let i = 0 ; i < result.length - 1; i++){
+            if(result[i].type === result[i+1].type){
+                result[i].size += result[i+1].size
+                result.splice(i, 1);
+                i--
+            }
+        }
+    }
+
+    return result;
 }
 
 function randomInteger(min, max) {
@@ -114,6 +136,7 @@ function randomInteger(min, max) {
     return Math.floor(rand);
 }
 
+// перемещиваем массив
 function createRandomOrderArr(arr) {
     let result = [];
     //copy

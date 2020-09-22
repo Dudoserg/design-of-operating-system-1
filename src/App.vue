@@ -156,15 +156,15 @@ export default {
         // draw(arr, "myCanvas");
 
         let canal_A = new Canal("A");
-        initCanal(canal_A);
+        initCanal(canal_A, true);
         this.canals.canals.push(canal_A)
 
         let canal_B = new Canal("B");
-        initCanal(canal_B);
+        initCanal(canal_B, true);
         this.canals.canals.push(canal_B)
 
         let canal_C = new Canal("C");
-        initCanal(canal_C);
+        initCanal(canal_C, true);
         this.canals.canals.push(canal_C)
 
         // среди задач выбираем на переферию
