@@ -8,16 +8,17 @@ import {randomNormal} from "@/js/RandomGauss";
 import * as _ from 'lodash';
 
 
-let A_setting = {
-    proc: 0.80, // процент процессорного времени
-    perf: 0.20, // процент периферийного времени
-    countPartMin: 5,    // минимальное количество частей( процессор, или периферия) из которой состоит задача
-    countPartMax: 10,   // максимальное количество частей( процессор, или периферия) из которой состоит задача
-    sizeMin: 10,    // минимальный размер части в условных единицах
-    sizeMax: 50     // максимальный размер части в условных единицах
-}
-let B_setting = {proc: 0.60, perf: 0.40, countPartMin: 7, countPartMax: 16, sizeMin: 10, sizeMax: 30}
-let C_setting = {proc: 0.40, perf: 0.60, countPartMin: 15, countPartMax: 25, sizeMin: 10, sizeMax: 20}
+// let A_setting = {
+//     proc: 0.80, // процент процессорного времени
+//     perf: 0.20, // процент периферийного времени
+//     countPartMin: 5,    // минимальное количество частей( процессор, или периферия) из которой состоит задача
+//     countPartMax: 10,   // максимальное количество частей( процессор, или периферия) из которой состоит задача
+//     sizeMin: 10,    // минимальный размер части в условных единицах
+//     sizeMax: 50     // максимальный размер части в условных единицах
+// }
+let A_setting = {proc: 0.80, perf: 0.20, countPartMin: 10, countPartMax: 15, sizeMin: 10, sizeMax: 50}
+let B_setting = {proc: 0.60, perf: 0.40, countPartMin: 10, countPartMax: 15, sizeMin: 10, sizeMax: 50}
+let C_setting = {proc: 0.40, perf: 0.60, countPartMin: 10, countPartMax: 15, sizeMin: 10, sizeMax: 50}
 
 /**
  *
@@ -117,10 +118,10 @@ function generateTask(settings, isConcatSamePart) {
     // let perf_generated_percent = perf_sizeAll / (proc_sizeAll + perf_sizeAll);
 
     let result = createRandomOrderArr(task_proc.concat(task_perf));
-    if( isConcatSamePart ){
-        for(let i = 0 ; i < result.length - 1; i++){
-            if(result[i].type === result[i+1].type){
-                result[i].size += result[i+1].size
+    if (isConcatSamePart) {
+        for (let i = 0; i < result.length - 1; i++) {
+            if (result[i].type === result[i + 1].type) {
+                result[i].size += result[i + 1].size
                 result.splice(i, 1);
                 i--
             }
