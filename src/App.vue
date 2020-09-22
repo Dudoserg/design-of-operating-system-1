@@ -78,6 +78,12 @@
 
 <script>
 
+import Canal from "@/js/Canal";
+
+import Greeter from "@/js/Greeter.ts";
+
+import {initCanal} from "@/js/InitData"
+
 export default {
     data() {
         return {
@@ -93,6 +99,7 @@ export default {
                 proc: null,
                 countProc: 0,
             },
+            canals:[],
             work_A: {
                 isActive: "",
                 type: "A",
@@ -158,6 +165,18 @@ export default {
         }
     },
     mounted() {
+
+        let canal_A = new Canal("A");
+        initCanal(canal_A);
+        this.canals.push(canal_A);
+
+        let canal_B = new Canal("B");
+        initCanal(canal_B);
+        this.canals.push(canal_B);
+
+
+
+
         this.works["A"] = this.work_A;
         this.works["B"] = this.work_B;
         // среди задач выбираем на переферию
