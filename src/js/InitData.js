@@ -3,11 +3,14 @@
 import Canal from "@/js/Canal";
 import Task from "@/js/Task";
 import Part from "@/js/Part";
+import {randomNormal} from "@/js/RandomGauss";
+
+import * as _ from 'lodash';
 
 
-let A_setting = {proc: 75, perf: 25, countPartMin: 10, countPartMax: 20, sizeMin: 10, sizeMax: 50}
-let B_setting = {proc: 65, perf: 35}
-let C_setting = {proc: 60, perf: 40}
+let A_setting = {proc: 0.80, perf: 0.20, countPartMin: 5, countPartMax: 10, sizeMin: 10, sizeMax: 50}
+let B_setting = {proc: 0.60, perf: 0.40, countPartMin: 7, countPartMax: 16, sizeMin: 10, sizeMax: 30}
+let C_setting = {proc: 0.40, perf: 0.60, countPartMin: 15, countPartMax: 25, sizeMin: 10, sizeMax: 20}
 
 /**
  *
@@ -16,56 +19,94 @@ let C_setting = {proc: 60, perf: 40}
 function initCanal(canal) {
     if (canal.type === "A") {
 
-        // Количество частей
-        let countPart = randomInteger(A_setting.countPartMin, A_setting.countPartMax);
+        for (let i = 0; i < 20; i++) {
+            let task = new Task();
+            task.parts = createRandomOrderArr(generateTask(A_setting));
+            canal.tasks.push(task);
+        }
 
-
-        let task_1 = new Task();
-        task_1.parts.push(new Part("perf", 50));
-        task_1.parts.push(new Part("proc", 300));
-        task_1.parts.push(new Part("perf", 50));
-        task_1.parts.push(new Part("proc", 170));
-        task_1.parts.push(new Part("perf", 100));   // начало отсюда
-
-        let task_2 = new Task();
-        task_2.parts.push(new Part("perf", 300));
-        task_2.parts.push(new Part("proc", 210));
-        task_2.parts.push(new Part("perf", 170));
-        task_2.parts.push(new Part("proc", 370));
-        task_2.parts.push(new Part("perf", 100));   // начало отсюда
-
-        canal.tasks.push(task_1);
-        canal.tasks.push(task_2);
     } else if (canal.type === "B") {
-        let task_1 = new Task();
-        task_1.parts.push(new Part("proc", 70));
-        task_1.parts.push(new Part("perf", 86));
-        task_1.parts.push(new Part("perf", 10));
-        task_1.parts.push(new Part("proc", 50));
-        task_1.parts.push(new Part("perf", 20));   // начало отсюда
-        let task_2 = new Task();
-        task_2.parts.push(new Part("perf", 90));
-        task_2.parts.push(new Part("proc", 53));
-        task_2.parts.push(new Part("perf", 130));
-        task_2.parts.push(new Part("proc", 80));
-        task_2.parts.push(new Part("perf", 40));   // начало отсюда
-
-        canal.tasks.push(task_1);
-        canal.tasks.push(task_2);
+        for (let i = 0; i < 20; i++) {
+            let task = new Task();
+            task.parts = createRandomOrderArr(generateTask(B_setting));
+            canal.tasks.push(task);
+        }
     } else if (canal.type === "C") {
-        let task_1 = new Task();
-        task_1.parts.push(new Part("perf", 30));
-        task_1.parts.push(new Part("proc", 70));
-        task_1.parts.push(new Part("perf", 10));
-        task_1.parts.push(new Part("proc", 100));
-        task_1.parts.push(new Part("perf", 20));
-        task_1.parts.push(new Part("proc", 70));
-        task_1.parts.push(new Part("perf", 20));   // начало отсюда
-
-        canal.tasks.push(task_1);
+        for (let i = 0; i < 20; i++) {
+            let task = new Task();
+            task.parts = createRandomOrderArr(generateTask(C_setting));
+            canal.tasks.push(task);
+        }
     }
 }
 
+
+function generateTask(settings) {
+    // Количество частей, полный рандом
+    let countPart = randomInteger(settings.countPartMin, settings.countPartMax);
+
+    // генерируем задачи для проца
+    let task_proc = [];
+    let proc_sizeAll = 0;
+    for (let i = 0; i < countPart * settings.proc; i++) {
+        let x = 0;
+        do {
+            x = Math.round(randomNormal(settings.sizeMin, settings.sizeMax, 0, 4, 5));
+        } while (x <= settings.sizeMin || x >= settings.sizeMax)
+        proc_sizeAll += x;
+        task_proc.push(new Part("proc", x));
+    }
+    // генерируем задачи для периферии
+    let task_perf = [];
+    let perf_sizeAll = 0;
+    for (let i = 0; i < countPart * settings.perf; i++) {
+        let x = 0;
+        do {
+            x = Math.round(randomNormal(settings.sizeMin, settings.sizeMax, 0, 4, 5));
+        } while (x <= settings.sizeMin || x >= settings.sizeMax)
+        perf_sizeAll += x;
+        task_perf.push(new Part("perf", x));
+    }
+    let needRelation = settings.proc / settings.perf;
+    let currentRelation = proc_sizeAll / perf_sizeAll;
+
+    // Если проца сильно меньше
+    if (needRelation > currentRelation) {
+        let indexProcPlus = 0;
+        while (needRelation > currentRelation) {
+            // добавляем размеры частей проца
+            task_proc[indexProcPlus++].size++;
+            if (indexProcPlus >= task_proc.length)
+                indexProcPlus = 0;
+            currentRelation = (++proc_sizeAll) / perf_sizeAll;
+            console.log("=");
+        }
+    } else {
+        // проса сильно больше
+        let indexPerfPlus = 0;
+        while (needRelation < currentRelation) {
+            // добавляем размеры частей периферии
+            task_perf[indexPerfPlus++].size++;
+            if (indexPerfPlus >= task_perf.length)
+                indexPerfPlus = 0;
+            currentRelation = proc_sizeAll / (++perf_sizeAll);
+            console.log("=");
+        }
+    }
+    // проверка, вроде норм
+    // proc_sizeAll = 0;
+    // task_proc.forEach(value => {
+    //     proc_sizeAll += value.size;
+    // })
+    // perf_sizeAll = 0;
+    // task_perf.forEach(value => {
+    //     perf_sizeAll += value.size;
+    // })
+    let proc_generated_percent = proc_sizeAll / (proc_sizeAll + perf_sizeAll);
+    let perf_generated_percent = perf_sizeAll / (proc_sizeAll + perf_sizeAll);
+
+    return task_proc.concat(task_perf);
+}
 
 function randomInteger(min, max) {
     // случайное число от min до (max+1)
@@ -73,21 +114,24 @@ function randomInteger(min, max) {
     return Math.floor(rand);
 }
 
-
-
-function randn_bm(min, max, skew) {
-
-    let u = 0, v = 0;
-    while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
-    while(v === 0) v = Math.random();
-    let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
-
-    num = num / 10.0 + 0.5; // Translate to 0 -> 1
-    if (num > 1 || num < 0) num = randn_bm(min, max, skew); // resample between 0 and 1 if out of range
-    num = Math.pow(num, skew); // Skew
-    num *= max - min; // Stretch to fill range
-    num += min; // offset to min
-    return num;
+function createRandomOrderArr(arr) {
+    let result = [];
+    //copy
+    for (let i = 0; i < arr.length; i++) {
+        result[i] = arr[i];
+    }
+    return shuffle(result);
 }
+
+function shuffle(array) {
+    let result = [];
+    while (array.length !== 0) {
+        let x = randomInteger(0, array.length - 1);
+        result.push(array[x]);
+        array.splice(x, 1);
+    }
+    return result;
+}
+
 
 export {initCanal}

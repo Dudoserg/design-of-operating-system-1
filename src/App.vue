@@ -1,8 +1,6 @@
 <template>
     <div class="app">
-        <canvas id="myCanvas" width="501" height="501" style="border:1px solid #000000;">
-
-        </canvas>
+<!--        <canvas id="myCanvas" width="501" height="501" style="border:1px solid #000000;"></canvas>-->
         <div v-for="canal in canals.canals"
              style="display: flex; align-items: center; margin-bottom: 10px;"
         >
@@ -141,7 +139,7 @@ export default {
             return sigma*(run_total - nsamples/2)/(nsamples/2) + mu
         }
         let arr = [];
-        let iteration = 1000000;
+        let iteration = 100000;
         let sigma = 1.0;
         let Mi = 0.0;
         for (let i = 0; i < 500; i++) {
@@ -155,7 +153,7 @@ export default {
             arr[Math.round(x)]++;
             // console.log(x);
         }
-        draw(arr, "myCanvas");
+        // draw(arr, "myCanvas");
 
         let canal_A = new Canal("A");
         initCanal(canal_A);
@@ -213,8 +211,8 @@ export default {
                             let tmp = this.computer.perf;
                             this.removeTask(tmp);
                         }
-
                         this.computer.perf = null;
+
                         // выбираем новую задачу на проц и перефирию
                     } else {
                         currentPart.size -= this.step;
@@ -235,11 +233,11 @@ export default {
                         currentTask.parts.splice(i, 1);
 
                         if (currentTask.parts.length === 0) {
-                            let tmp = this.computer.perf;
+                            let tmp = this.computer.proc;
                             this.removeTask(tmp);
                         }
+                            this.computer.proc = null;
 
-                        this.computer.proc = null;
                         // выбираем новую задачу на проц и перефирию
                     } else {
                         currentPart.size -= this.step;
@@ -271,6 +269,20 @@ export default {
         perfFreed() {
             this.computer.perf = null;
             let randomOrder = createRandomOrderArr(this.canals.canals);
+
+            // test createRandomOrderArr
+            // let result = [];
+            // for(let i = 0 ; i < 100000; i++){
+            //     let randomOrder = createRandomOrderArr(this.canals.canals);
+            //     let x = randomOrder[0].id;
+            //     let str = (randomOrder[0].id + '') + (randomOrder[1].id + '')  + (randomOrder[2].id + '');
+            //     let resultElement = result[str];
+            //     if( typeof  resultElement === "undefined")
+            //         result[str] = 1;
+            //     else
+            //         result[str]++;
+            // }
+
             console.log(randomOrder[0].id + "\t" + randomOrder[1].id + "\t" + randomOrder[2].id);
             // среди задач выбираем на переферию
             randomOrder.forEach(canal => {

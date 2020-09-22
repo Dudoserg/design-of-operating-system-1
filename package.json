@@ -20,6 +20,7 @@
   "homepage": "https://github.com/samteb/vue-2-webpack-4-boilerplate",
   "dependencies": {
     "@babel/polyfill": "~7.2",
+    "lodash": "^4.17.20",
     "vue": "~2.6",
     "vue-router": "~3.0"
   },
