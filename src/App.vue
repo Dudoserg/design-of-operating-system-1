@@ -150,7 +150,7 @@ export default {
         for (let i = 0; i < iteration; i++) {
             // let x = normalRandom(0, 500, 1) * sigma + Mi;
             // let x = (normal(0, 3, 5) + 1 ) * 250;
-            let x = randomNormal(0, 500, 0, 2, 5);
+            let x = randomNormal(0, 500, 0, 4, 5);
 
             arr[Math.round(x)]++;
             // console.log(x);
