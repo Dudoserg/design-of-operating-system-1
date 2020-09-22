@@ -34,6 +34,7 @@ const webpackConfig = merge(commonConfig, {
         open: true,
         overlay: true,
         port: 8000,
+        disableHostCheck: true,   // That solved it
         stats: {
             normal: true
         }

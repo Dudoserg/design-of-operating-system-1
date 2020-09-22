@@ -1,12 +1,17 @@
 <template>
     <div class="app">
+        <canvas id="myCanvas" width="501" height="501" style="border:1px solid #000000;">
 
-        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        </canvas>
+        <div v-for="canal in canals.canals"
+             style="display: flex; align-items: center; margin-bottom: 10px;"
+        >
             <div class="bulb">
-                <div :class="'bulb__lamp ' + ( work_A.isActive === true ? 'bulb__lamp_active' : '') "></div>
+                {{ canal.type }}
+                <div :class="'bulb__lamp ' + ( canal.isActive === true ? 'bulb__lamp_active' : '') "></div>
             </div>
-            <div :class="'wrapper ' +  ( work_A.isActive === false ? 'wrapper_disable' : '')  ">
-                <div class="task" v-for="task in work_A.tasks">
+            <div :class="'wrapper ' +  ( canal.isActive === false ? 'wrapper_disable' : '')  ">
+                <div class="task" v-for="task in canal.tasks">
                     <div v-for="part in task.parts"
                          :class="part.type"
                          :style="'width: ' + part.size + 'px'">
@@ -21,25 +26,6 @@
             </div>
         </div>
 
-        <div style="display: flex; align-items: center">
-            <div class="bulb">
-                <div :class="'bulb__lamp ' + ( work_B.isActive === true ? 'bulb__lamp_active' : '') "></div>
-            </div>
-            <div :class="'wrapper ' +  ( work_B.isActive === false ? 'wrapper_disable' : '')  ">
-            <div class="task" v-for="task in work_B.tasks">
-                    <div v-for="part in task.parts"
-                         :class="part.type"
-                         :style="'width: ' + part.size + 'px'">
-                    </div>
-                </div>
-                <div class="task" style="visibility: hidden">
-                    <div class="proc"></div>
-                </div>
-            </div>
-            <div style="margin-left: 20px">
-                <button @click="addTask('B')">+</button>
-            </div>
-        </div>
         <div class="status">
             <div class="status__type">
                 <div class="perf"> {{ perfTitle }}</div>
@@ -79,10 +65,11 @@
 <script>
 
 import Canal from "@/js/Canal";
-
-import Greeter from "@/js/Greeter.ts";
-
+import Canals from "@/js/Canals";
 import {initCanal} from "@/js/InitData"
+import {draw} from "@/js/DrawLine";
+
+import {randomNormal} from "@/js/RandomGauss";
 
 export default {
     data() {
@@ -99,56 +86,7 @@ export default {
                 proc: null,
                 countProc: 0,
             },
-            canals:[],
-            work_A: {
-                isActive: "",
-                type: "A",
-                tasks: [
-                    {
-                        parts: [
-                            {type: "perf", size: 50},
-                            {type: "proc", size: 300},
-                            {type: "perf", size: 50},
-                            {type: "proc", size: 170},
-                            {type: "perf", size: 100},// начало отсюда
-                        ]
-                    },
-                    {
-                        parts: [
-                            {type: "perf", size: 300},
-                            {type: "proc", size: 300},
-                            {type: "perf", size: 500},
-                            {type: "proc", size: 170},
-                            {type: "perf", size: 100},// начало отсюда
-                        ]
-                    },
-                ]
-            },
-            work_B: {
-                isActive: "",
-                type: "B",
-                tasks: [
-                    {
-                        parts: [
-                            {type: "proc", size: 70},
-                            {type: "perf", size: 86},
-                            {type: "perf", size: 10},
-                            {type: "proc", size: 50},
-                            {type: "perf", size: 20},// начало отсюда
-                        ]
-                    },
-                    {
-                        parts: [
-                            {type: "perf", size: 90},
-                            {type: "proc", size: 53},
-                            {type: "perf", size: 130},
-                            {type: "proc", size: 80},
-                            {type: "perf", size: 40},// начало отсюда
-                        ]
-                    },
-                ]
-            },
-            works: {}
+            canals: new Canals(),
 
         }
     },
@@ -166,32 +104,84 @@ export default {
     },
     mounted() {
 
+        // function rand_gen() {
+        //     // return a uniformly distributed random value
+        //     return ((Math.random()) + 1.) / ((1.0) + 1.);
+        // }
+        //
+        // function normalRandom() {
+        //     // return a normally distributed random value
+        //     let v1 = rand_gen();
+        //     let v2 = rand_gen();
+        //     return Math.cos(2 * 3.14 * v2) * Math.sqrt(-2. * Math.log(v1));
+        // }
+        function normalRandom(min, max, skew) {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+            while (v === 0) v = Math.random();
+            let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+
+            num = num / 10.0 + 0.5; // Translate to 0 -> 1
+            if (num > 1 || num < 0) num = randn_bm(min, max, skew); // resample between 0 and 1 if out of range
+            num = Math.pow(num, skew); // Skew
+            num *= max - min; // Stretch to fill range
+            num += min; // offset to min
+            return num;
+        }
+        function normal(mu, sigma, nsamples){
+            if(!nsamples) nsamples = 6
+            if(!sigma) sigma = 1
+            if(!mu) mu=0
+
+            var run_total = 0
+            for(var i=0 ; i< nsamples ; i++){
+                run_total += Math.random()
+            }
+
+            return sigma*(run_total - nsamples/2)/(nsamples/2) + mu
+        }
+        let arr = [];
+        let iteration = 1000000;
+        let sigma = 1.0;
+        let Mi = 0.0;
+        for (let i = 0; i < 500; i++) {
+            arr[i] = 0;
+        }
+        for (let i = 0; i < iteration; i++) {
+            // let x = normalRandom(0, 500, 1) * sigma + Mi;
+            // let x = (normal(0, 3, 5) + 1 ) * 250;
+            let x = randomNormal(0, 500, 0, 2, 5);
+
+            arr[Math.round(x)]++;
+            // console.log(x);
+        }
+        draw(arr, "myCanvas");
+
         let canal_A = new Canal("A");
         initCanal(canal_A);
-        this.canals.push(canal_A);
+        this.canals.canals.push(canal_A)
 
         let canal_B = new Canal("B");
         initCanal(canal_B);
-        this.canals.push(canal_B);
+        this.canals.canals.push(canal_B)
 
+        let canal_C = new Canal("C");
+        initCanal(canal_C);
+        this.canals.canals.push(canal_C)
 
-
-
-        this.works["A"] = this.work_A;
-        this.works["B"] = this.work_B;
         // среди задач выбираем на переферию
-        for (let key in this.works) {
-            let work = this.works[key];
-            if (work.tasks[0].parts[0].type === "perf") {
+        this.canals.canals.forEach((canal, index, array) => {
+            if (canal.tasks[0].parts[0].type === "perf") {
                 if (this.computer.perf === null) {
-                    this.computer.perf = work;
+                    this.computer.perf = canal;
                 }
-            } else if (work.tasks[0].parts[0].type === "proc") {
+            } else if (canal.tasks[0].parts[0].type === "proc") {
                 if (this.computer.proc === null) {
-                    this.computer.proc = work;
+                    this.computer.proc = canal;
                 }
             }
-        }
+        })
+
 
         let iter = (function () {
             setTimeout(() => {
@@ -280,13 +270,19 @@ export default {
         // периферия освободилась
         perfFreed() {
             this.computer.perf = null;
-            let keys = shuffle(["A", "B"]);
+            let randomOrder = createRandomOrderArr(this.canals.canals);
+            console.log(randomOrder[0].id + "\t" + randomOrder[1].id + "\t" + randomOrder[2].id);
             // среди задач выбираем на переферию
-            keys.forEach(key => {
-                let work = this.works[key];
-                if (work.tasks.length > 0 && work.tasks[0].parts[0].type === "perf") {
-                    if (this.computer.perf === null) {
-                        this.computer.perf = work;
+            randomOrder.forEach(canal => {
+                if (canal.tasks.length > 0) {
+                    if (canal.tasks[0].parts.length > 0) {
+                        let part = canal.tasks[0].parts[0];
+                        if (part.type === "perf") {
+                            if (this.computer.perf === null) {
+                                this.computer.perf = canal;
+                                return;
+                            }
+                        }
                     }
                 }
             })
@@ -294,13 +290,18 @@ export default {
         // Проц освободился, назначаем ему задачу
         procFreed() {
             this.computer.proc = null;
-            let keys = shuffle(["A", "B"]);
-            // среди задач выбираем на переферию
-            keys.forEach(key => {
-                let work = this.works[key];
-                if (work.tasks.length > 0 && work.tasks[0].parts[0].type === "proc") {
-                    if (this.computer.proc === null) {
-                        this.computer.proc = work;
+            // let keys = shuffle(["A", "B"]);
+            let randomOrder = createRandomOrderArr(this.canals.canals);
+            // среди задач выбираем на проц
+            randomOrder.forEach(canal => {
+                if (canal.tasks.length > 0) {
+                    if (canal.tasks[0].parts.length > 0) {
+                        let part = canal.tasks[0].parts[0];
+                        if (part.type === "proc") {
+                            if (this.computer.proc === null) {
+                                this.computer.proc = canal;
+                            }
+                        }
                     }
                 }
             })
@@ -308,11 +309,15 @@ export default {
 
         // task end, нужно удалить его из списка
         removeTask(tmp) {
-            if (tmp.type === "A") {
-                this.work_A.tasks.splice(0, 1);
-            } else if (tmp.type === "B") {
-                this.work_B.tasks.splice(0, 1);
+            for (let i = 0; i < this.canals.canals.length; i++) {
+                let currentCanal = this.canals.canals[i];
+                let q_1 = currentCanal.type;
+                let q_2 = tmp.type;
+                if (q_1 === q_2) {
+                    this.canals.canals[i].tasks.splice(0, 1);
+                }
             }
+
         },
         tikSpeedPlus() {
             this.tikSpeed += 10;
@@ -324,20 +329,6 @@ export default {
             }
         },
         addTask(type) {
-            switch (type) {
-                case "A": {
-                    let task = {
-                        parts: [
-                            {type: "perf", size: 50},
-                            {type: "proc", size: 300},
-                            {type: "perf", size: 50},
-                            {type: "proc", size: 170},
-                            {type: "perf", size: 100},// начало отсюда
-                        ]
-                    };
-                    this.work_A.push(task);
-                }
-            }
         },
 
         getPercent(percent) {
@@ -348,44 +339,45 @@ export default {
         },
         //
         lampReload(tmp) {
-            let A_show = false;
-            let B_show = false;
-            if (this.computer.proc !== null) {
-                switch (this.computer.proc.type) {
-                    case "A": {
-                        A_show = true;
-                        break;
-                    }
-                    case "B": {
-                        B_show = true;
-                        break;
-                    }
-                    default: {
-                        throw new Error(" type not found, in lampReload()");
+            this.canals.canals.forEach(canal => {
+                canal.isActive = false;
+            })
+            let canalProc;      // канал, который сейчас обрабатывается процессором
+            let canalPerf;      // канал, который сейчас обрабатывается процессором
+            this.canals.canals.forEach(canal => {
+                if (this.computer.proc !== null) {
+                    if (this.computer.proc.id === canal.id) {
+                        if (canal.isActive !== true) {
+                            canal.isActive = true;
+                        }
+                        canalProc = canal;
                     }
                 }
-            }
-            if (this.computer.perf !== null) {
-                switch (this.computer.perf.type) {
-                    case "A": {
-                        A_show = true;
-                        break;
-                    }
-                    case "B": {
-                        B_show = true;
-                        break;
-                    }
-                    default: {
-                        throw new Error(" type not found, in lampReload()");
+                if (this.computer.perf !== null) {
+                    if (this.computer.perf.id === canal.id) {
+                        if (canal.isActive !== true) {
+                            canal.isActive = true;
+                        }
+                        canalPerf = canal;
                     }
                 }
-            }
+            })
 
-            if (this.work_A.isActive !== A_show)
-                this.work_A.isActive = A_show
-
-            if (this.work_B.isActive !== B_show)
-                this.work_B.isActive = B_show
+            // this.canals.canals.forEach(canal => {
+            //     // Если она ща включен
+            //     if (canal.isActive === true) {
+            //         let status = true;
+            //         if (canalProc != null) {
+            //             if (canalProc.id !== canal.id)
+            //                 status = false;
+            //         }
+            //         if (canalPerf != null)
+            //             if (canalPerf.id !== canal.id)
+            //                 status = false;
+            //         if (status === false && canal.isActive !== false)
+            //             canal.isActive = status;
+            //     }
+            // })
         }
     },
     watch: {
@@ -409,5 +401,14 @@ function randomInteger(min, max) {
     // получить случайное число от (min-0.5) до (max+0.5)
     let rand = min - 0.5 + Math.random() * (max - min + 1);
     return Math.round(rand);
+}
+
+function createRandomOrderArr(arr) {
+    let result = [];
+    //copy
+    for (let i = 0; i < arr.length; i++) {
+        result[i] = arr[i];
+    }
+    return shuffle(result);
 }
 </script>
